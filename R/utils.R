@@ -10,10 +10,6 @@
 #'
 #' @noRd
 .execute_schtasks <- function(args, error_msg = "schtasks command failed") {
-
-
-
-
   # TODO: Add /s, /u, /p parameters for remote computer support
   result <- system2(
     command = "schtasks",
@@ -66,7 +62,11 @@
   # Invalid filename characters on Windows
   # Note: backslash is allowed as it's used for folder paths
   invalid_chars <- c("<", ">", ":", "\"", "/", "|", "?", "*")
-  invalid_pattern <- paste0("[", paste0("\\", invalid_chars, collapse = ""), "]")
+  invalid_pattern <- paste0(
+    "[",
+    paste0("\\", invalid_chars, collapse = ""),
+    "]"
+  )
 
   if (stringr::str_detect(task_name, invalid_pattern)) {
     cli::cli_abort(c(
@@ -187,9 +187,9 @@
 
   # Accept various date formats
   date_patterns <- c(
-    "^\\d{4}/\\d{2}/\\d{2}$",  # YYYY/MM/DD
-    "^\\d{2}/\\d{2}/\\d{4}$",  # DD/MM/YYYY or MM/DD/YYYY
-    "^\\d{4}-\\d{2}-\\d{2}$"   # YYYY-MM-DD (ISO)
+    "^\\d{4}/\\d{2}/\\d{2}$", # YYYY/MM/DD
+    "^\\d{2}/\\d{2}/\\d{4}$", # DD/MM/YYYY or MM/DD/YYYY
+    "^\\d{4}-\\d{2}-\\d{2}$" # YYYY-MM-DD (ISO)
   )
 
   if (!any(purrr::map_lgl(date_patterns, \(p) stringr::str_detect(date, p)))) {
@@ -219,7 +219,7 @@
     ))
   }
 
- askpass::askpass(prompt)
+  askpass::askpass(prompt)
 }
 
 
@@ -237,8 +237,13 @@
 
   # Also accept full names
   day_map <- c(
-    "MONDAY" = "MON", "TUESDAY" = "TUE", "WEDNESDAY" = "WED",
-    "THURSDAY" = "THU", "FRIDAY" = "FRI", "SATURDAY" = "SAT", "SUNDAY" = "SUN"
+    "MONDAY" = "MON",
+    "TUESDAY" = "TUE",
+    "WEDNESDAY" = "WED",
+    "THURSDAY" = "THU",
+    "FRIDAY" = "FRI",
+    "SATURDAY" = "SAT",
+    "SUNDAY" = "SUN"
   )
 
   if (day %in% names(day_map)) {
@@ -255,10 +260,6 @@
 
   day
 }
-
-  day
-}
-
 
 #' Normalise multiple days of week
 #'
@@ -282,19 +283,39 @@
 #' @noRd
 .normalise_months <- function(months) {
   valid_months <- c(
-    "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC"
   )
 
   month_map <- c(
-    "JANUARY" = "JAN", "FEBRUARY" = "FEB", "MARCH" = "MAR",
-    "APRIL" = "APR", "MAY" = "MAY", "JUNE" = "JUN",
-    "JULY" = "JUL", "AUGUST" = "AUG", "SEPTEMBER" = "SEP",
-    "OCTOBER" = "OCT", "NOVEMBER" = "NOV", "DECEMBER" = "DEC"
+    "JANUARY" = "JAN",
+    "FEBRUARY" = "FEB",
+    "MARCH" = "MAR",
+    "APRIL" = "APR",
+    "MAY" = "MAY",
+    "JUNE" = "JUN",
+    "JULY" = "JUL",
+    "AUGUST" = "AUG",
+    "SEPTEMBER" = "SEP",
+    "OCTOBER" = "OCT",
+    "NOVEMBER" = "NOV",
+    "DECEMBER" = "DEC"
   )
 
   normalise_one <- function(m) {
-    if (m == "*") return("*")
+    if (m == "*") {
+      return("*")
+    }
 
     m <- toupper(m)
 
@@ -346,25 +367,25 @@
 #'
 #' @noRd
 .build_create_args <- function(
-    task_name,
-    task_run,
-    schedule_type,
-    modifier = NULL,
-    day = NULL,
-    months = NULL,
-    idle_time = NULL,
-    start_time = NULL,
-    end_time = NULL,
-    duration = NULL,
-    interval = NULL,
-    start_date = NULL,
-    end_date = NULL,
-    run_level = NULL,
-    run_as_user = NULL,
-    kill_on_end = FALSE,
-    delete_when_done = FALSE,
-    force = FALSE,
-    interactive_only = FALSE
+  task_name,
+  task_run,
+  schedule_type,
+  modifier = NULL,
+  day = NULL,
+  months = NULL,
+  idle_time = NULL,
+  start_time = NULL,
+  end_time = NULL,
+  duration = NULL,
+  interval = NULL,
+  start_date = NULL,
+  end_date = NULL,
+  run_level = NULL,
+  run_as_user = NULL,
+  kill_on_end = FALSE,
+  delete_when_done = FALSE,
+  force = FALSE,
+  interactive_only = FALSE
 ) {
   # Validate required arguments
   .validate_task_name(task_name)
@@ -373,9 +394,12 @@
 
   args <- c(
     "/create",
-    "/sc", schedule_type,
-    "/tn", .quote_task_name(task_name),
-    "/tr", .quote_path(task_run)
+    "/sc",
+    schedule_type,
+    "/tn",
+    .quote_task_name(task_name),
+    "/tr",
+    .quote_path(task_run)
   )
 
   # Add optional arguments
@@ -411,7 +435,12 @@
   }
 
   if (!is.null(interval)) {
-    checkmate::assert_integerish(interval, lower = 1L, upper = 599940L, len = 1L)
+    checkmate::assert_integerish(
+      interval,
+      lower = 1L,
+      upper = 599940L,
+      len = 1L
+    )
     args <- c(args, "/ri", as.character(interval))
   }
 
