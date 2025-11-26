@@ -96,6 +96,91 @@
 }
 
 
+#' Build command to run a task with optional script interpreter
+#'
+#' Creates a command that optionally uses a script interpreter (like Rscript.exe)
+#' to execute a task in a specified directory.
+#'
+#' @param task_run Character string. The program, script, or command to run.
+#' @param script Character string or NULL. Path to the script interpreter executable
+#'   (e.g., "C:/Program Files/R/R-4.3.0/bin/Rscript.exe"). If NULL, runs task_run directly.
+#' @param exec_path Character string. Directory from which to execute the task.
+#'
+#' @return Character string command that can be passed to schtasks /tr.
+#'
+#' @noRd
+.build_task_command <- function(task_run, script = NULL, exec_path = NULL) {
+  checkmate::assert_string(task_run, min.chars = 1L)
+
+  # Validate script and task_run extension compatibility
+  if (!is.null(script)) {
+    script_lower <- tolower(basename(script))
+    task_ext <- tolower(tools::file_ext(task_run))
+
+    # Define expected extensions for each interpreter
+    expected_exts <- list(
+      "rscript.exe" = c("r"),
+      "python.exe" = c("py", "pyw"),
+      "julia.exe" = c("jl"),
+      "perl.exe" = c("pl", "pm"),
+      "node.exe" = c("js", "mjs", "cjs"),
+      "ts-node.exe" = c("ts"),
+      "raku.exe" = c("raku", "rakumod", "pl6", "pm6"),
+      "rakudo.exe" = c("raku", "rakumod", "pl6", "pm6")
+    )
+
+    # Check if we have validation rules for this interpreter
+    if (script_lower %in% names(expected_exts)) {
+      valid_exts <- expected_exts[[script_lower]]
+
+      if (!task_ext %in% valid_exts) {
+        interpreter_name <- sub("\\.exe$", "", script_lower)
+        cli::cli_warn(c(
+          "Using {interpreter_name} with a file that doesn't have an expected extension.",
+          "i" = "Task file: {.path {task_run}}",
+          "i" = "Expected extension(s): {.val {paste0('.', valid_exts)}}"
+        ))
+      }
+    }
+  }
+
+  # Determine execution path
+  if (!is.null(exec_path)) {
+    # Normalize the execution path
+    exec_path <- normalizePath(exec_path, mustWork = FALSE, winslash = "/")
+  } else {
+    # Default: use current working directory
+    exec_path <- getwd()
+  }
+
+  # Build the command based on whether a script interpreter is specified
+  if (!is.null(script)) {
+    # Extract just the filename from task_run
+    task_file <- basename(task_run)
+
+    # Build command: cmd /c "cd /d <exec_path> && <script> <task_file>"
+    cmd <- sprintf(
+      "cmd /c \"cd /d \"%s\" && %s \"%s\"\"",
+      exec_path,
+      script,
+      task_file
+    )
+  } else {
+    # No script interpreter - just change directory and run the task
+    task_file <- basename(task_run)
+
+    # Build command: cmd /c "cd /d <exec_path> && <task_file>"
+    cmd <- sprintf(
+      "cmd /c \"cd /d \"%s\" && \"%s\"\"",
+      exec_path,
+      task_file
+    )
+  }
+
+  cmd
+}
+
+
 #' Quote a task name for command line use
 #'
 #' @param task_name Character string of the task name.

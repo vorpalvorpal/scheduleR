@@ -3,8 +3,13 @@
 #' Creates a task that runs repeatedly at a specified minute interval.
 #'
 #' @param task_name Character string. Name of the task (max 238 characters).
-#' @param task_run Character string. Full path to the program or command to run.
+#' @param task_run Character string. The program, script, or command to run.
 #' @param every Integer. Run the task every N minutes (1-1439). Default is 1.
+#' @param script Character string or NULL. Path to script interpreter executable
+#'   (e.g., path to Rscript.exe, python.exe, julia.exe, etc.).
+#'   If `NULL`, runs `task_run` directly. Default is Rscript.exe from the current R installation.
+#' @param exec_path Character string. Directory from which to execute the task.
+#'   Default is `here::here()` (project root).
 #' @param start_time Character string. Start time in HH:MM 24-hour format.
 #'   If `NULL` (default), the task starts immediately.
 #' @param end_time Character string. End time in HH:MM 24-hour format.
@@ -16,8 +21,7 @@
 #'   If `NULL`, uses current date.
 #' @param end_date Date or character string. Date when the schedule ends. Optional.
 #' @param run_level Character string. Either `"LIMITED"` (default, runs with
-#'   standard user privileges)
-#' or `"HIGHEST"` (runs with elevated privileges).
+#'   standard user privileges) or `"HIGHEST"` (runs with elevated privileges).
 #' @param run_as_user Character string. User account under which the task runs.
 #'   If `NULL`, runs as the current user. Use `"SYSTEM"` for system account.
 #' @param kill_on_end Logical. If `TRUE`, stops the program when `end_time` or
@@ -35,26 +39,37 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Run a script every 30 minutes
+#' # Run an R script every 30 minutes
 #' schtask_create_minute(
-#'   task_name = "MyScript",
-#'   task_run = "C:\\Scripts\\backup.bat",
+#'   task_name = "DataRefresh",
+#'   task_run = "refresh_data.R",
 #'   every = 30
 #' )
 #'
-#' # Run every 15 minutes between 9am and 5pm
+#' # Run every 15 minutes between 9am and 5pm from a specific directory
 #' schtask_create_minute(
 #'   task_name = "WorkHoursTask",
-#'   task_run = "C:\\Scripts\\sync.exe",
+#'   task_run = "check_status.R",
+#'   exec_path = "C:/Projects/myproject",
 #'   every = 15,
 #'   start_time = "09:00",
 #'   end_time = "17:00"
+#' )
+#'
+#' # Run a Python script every hour
+#' schtask_create_minute(
+#'   task_name = "PythonTask",
+#'   task_run = "script.py",
+#'   script = "C:/Python311/python.exe",
+#'   every = 60
 #' )
 #' }
 schtask_create_minute <- function(
     task_name,
     task_run,
     every = 1L,
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_time = NULL,
     end_time = NULL,
     duration = NULL,
@@ -72,9 +87,12 @@ schtask_create_minute <- function(
   if (!is.null(end_time) && !is.null(duration))
     cli::cli_abort("Cannot specify both {.arg end_time} and {.arg duration}.")
 
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "MINUTE",
     modifier = every,
     start_time = start_time,
@@ -113,7 +131,7 @@ schtask_create_minute <- function(
 #' # Run every 2 hours
 #' schtask_create_hourly(
 #'   task_name = "BiHourlyCheck",
-#'   task_run = "C:\\Scripts\\check.exe",
+#'   task_run = "check_status.R",
 #'   every = 2
 #' )
 #' }
@@ -121,6 +139,8 @@ schtask_create_hourly <- function(
     task_name,
     task_run,
     every = 1L,
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_time = NULL,
     end_time = NULL,
     duration = NULL,
@@ -138,9 +158,12 @@ schtask_create_hourly <- function(
   if (!is.null(end_time) && !is.null(duration))
     cli::cli_abort("Cannot specify both {.arg end_time} and {.arg duration}.")
 
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "HOURLY",
     modifier = every,
     start_time = start_time,
@@ -179,14 +202,14 @@ schtask_create_hourly <- function(
 #' # Run daily at 3am
 #' schtask_create_daily(
 #'   task_name = "NightlyBackup",
-#'   task_run = "C:\\Scripts\\backup.bat",
+#'   task_run = "backup.R",
 #'   start_time = "03:00"
 #' )
 #'
 #' # Run every 3 days
 #' schtask_create_daily(
 #'   task_name = "TriDailyReport",
-#'   task_run = "C:\\Scripts\\report.exe",
+#'   task_run = "report.R",
 #'   every = 3,
 #'   start_time = "08:00"
 #' )
@@ -195,6 +218,8 @@ schtask_create_daily <- function(
     task_name,
     task_run,
     every = 1L,
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_time = NULL,
     end_time = NULL,
     duration = NULL,
@@ -212,9 +237,12 @@ schtask_create_daily <- function(
   if (!is.null(end_time) && !is.null(duration))
     cli::cli_abort("Cannot specify both {.arg end_time} and {.arg duration}.")
 
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "DAILY",
     modifier = every,
     start_time = start_time,
@@ -257,14 +285,14 @@ schtask_create_daily <- function(
 #' # Run every Monday at 9am
 #' schtask_create_weekly(
 #'   task_name = "MondayReport",
-#'   task_run = "C:\\Scripts\\report.exe",
+#'   task_run = "report.R",
 #'   start_time = "09:00"
 #' )
 #'
 #' # Run every weekday
 #' schtask_create_weekly(
 #'   task_name = "WeekdaySync",
-#'   task_run = "C:\\Scripts\\sync.exe",
+#'   task_run = "sync.R",
 #'   days = c("MON", "TUE", "WED", "THU", "FRI"),
 #'   start_time = "08:00"
 #' )
@@ -272,7 +300,7 @@ schtask_create_daily <- function(
 #' # Run every other Friday
 #' schtask_create_weekly(
 #'   task_name = "BiWeeklyPayroll",
-#'   task_run = "C:\\Scripts\\payroll.exe",
+#'   task_run = "payroll.R",
 #'   every = 2,
 #'   days = "FRI",
 #'   start_time = "17:00"
@@ -283,6 +311,8 @@ schtask_create_weekly <- function(
     task_run,
     every = 1L,
     days = "MON",
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_time = NULL,
     end_time = NULL,
     duration = NULL,
@@ -301,6 +331,9 @@ schtask_create_weekly <- function(
   if (!is.null(end_time) && !is.null(duration))
     cli::cli_abort("Cannot specify both {.arg end_time} and {.arg duration}.")
 
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   # Handle wildcard
   if (identical(days, "*")) {
     day_arg <- "*"
@@ -310,7 +343,7 @@ schtask_create_weekly <- function(
 
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "WEEKLY",
     modifier = every,
     day = day_arg,
@@ -371,7 +404,7 @@ schtask_create_weekly <- function(
 #' # Run on the 15th of every month
 #' schtask_create_monthly(
 #'   task_name = "MidMonthReport",
-#'   task_run = "C:\\Scripts\\report.exe",
+#'   task_run = "report.R",
 #'   day = 15,
 #'   start_time = "09:00"
 #' )
@@ -379,7 +412,7 @@ schtask_create_weekly <- function(
 #' # Run on the second Tuesday of every month
 #' schtask_create_monthly(
 #'   task_name = "SecondTuesday",
-#'   task_run = "C:\\Scripts\\meeting.exe",
+#'   task_run = "meeting.R",
 #'   modifier = "SECOND",
 #'   day = "TUE",
 #'   start_time = "10:00"
@@ -388,7 +421,7 @@ schtask_create_weekly <- function(
 #' # Run on the last day of every month
 #' schtask_create_monthly(
 #'   task_name = "MonthEnd",
-#'   task_run = "C:\\Scripts\\close.exe",
+#'   task_run = "close.R",
 #'   modifier = "LASTDAY",
 #'   start_time = "18:00"
 #' )
@@ -396,7 +429,7 @@ schtask_create_weekly <- function(
 #' # Run every 3 months on the 1st
 #' schtask_create_monthly(
 #'   task_name = "QuarterlyReview",
-#'   task_run = "C:\\Scripts\\review.exe",
+#'   task_run = "review.R",
 #'   modifier = 3,
 #'   day = 1,
 #'   start_time = "09:00"
@@ -405,7 +438,7 @@ schtask_create_weekly <- function(
 #' # Run on the first Monday of March and September
 #' schtask_create_monthly(
 #'   task_name = "BiAnnualKickoff",
-#'   task_run = "C:\\Scripts\\kickoff.exe",
+#'   task_run = "kickoff.R",
 #'   modifier = "FIRST",
 #'   day = "MON",
 #'   months = c("MAR", "SEP"),
@@ -418,6 +451,8 @@ schtask_create_monthly <- function(
     modifier = 1L,
     day = NULL,
     months = "*",
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_time = NULL,
     start_date = NULL,
     end_date = NULL,
@@ -479,12 +514,15 @@ schtask_create_monthly <- function(
       ))
   }
 
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   # Normalise months
   months_arg <- .normalise_months(months)
 
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "MONTHLY",
     modifier = modifier,
     day = day_arg,
@@ -524,7 +562,7 @@ schtask_create_monthly <- function(
 #' # Run once at a specific date and time
 #' schtask_create_once(
 #'   task_name = "OneTimeSetup",
-#'   task_run = "C:\\Scripts\\setup.exe",
+#'   task_run = "setup.R",
 #'   start_time = "14:30",
 #'   start_date = "2024/06/15"
 #' )
@@ -533,6 +571,8 @@ schtask_create_once <- function(
     task_name,
     task_run,
     start_time,
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_date = NULL,
     run_level = "LIMITED",
     run_as_user = NULL,
@@ -543,9 +583,12 @@ schtask_create_once <- function(
   checkmate::assert_string(start_time)
   .validate_time(start_time, "start_time")
 
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "ONCE",
     start_time = start_time,
     start_date = start_date,
@@ -578,19 +621,21 @@ schtask_create_once <- function(
 #' # Run at every system startup
 #' schtask_create_on_start(
 #'   task_name = "StartupService",
-#'   task_run = "C:\\Scripts\\startup.exe"
+#'   task_run = "startup.R"
 #' )
 #'
 #' # Run at startup with system privileges
 #' schtask_create_on_start(
 #'   task_name = "SystemStartup",
-#'   task_run = "C:\\Scripts\\syscheck.exe",
+#'   task_run = "syscheck.R",
 #'   run_as_user = "SYSTEM"
 #' )
 #' }
 schtask_create_on_start <- function(
     task_name,
     task_run,
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_date = NULL,
     run_level = "LIMITED",
     run_as_user = NULL,
@@ -598,9 +643,12 @@ schtask_create_on_start <- function(
     force = FALSE,
     interactive_only = FALSE
 ) {
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "ONSTART",
     start_date = start_date,
     run_level = run_level,
@@ -634,12 +682,14 @@ schtask_create_on_start <- function(
 #' # Run when any user logs on
 #' schtask_create_on_logon(
 #'   task_name = "LogonScript",
-#'   task_run = "C:\\Scripts\\logon.bat"
+#'   task_run = "logon.R"
 #' )
 #' }
 schtask_create_on_logon <- function(
     task_name,
     task_run,
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_date = NULL,
     run_level = "LIMITED",
     run_as_user = NULL,
@@ -647,9 +697,12 @@ schtask_create_on_logon <- function(
     force = FALSE,
     interactive_only = FALSE
 ) {
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "ONLOGON",
     start_date = start_date,
     run_level = run_level,
@@ -686,7 +739,7 @@ schtask_create_on_logon <- function(
 #' # Run after 10 minutes of idle time
 #' schtask_create_on_idle(
 #'   task_name = "IdleMaintenance",
-#'   task_run = "C:\\Scripts\\maintenance.exe",
+#'   task_run = "maintenance.R",
 #'   idle_time = 10
 #' )
 #' }
@@ -694,6 +747,8 @@ schtask_create_on_idle <- function(
     task_name,
     task_run,
     idle_time,
+    script = file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe"),
+    exec_path = here::here(),
     start_date = NULL,
     run_level = "LIMITED",
     run_as_user = NULL,
@@ -703,9 +758,12 @@ schtask_create_on_idle <- function(
 ) {
   checkmate::assert_integerish(idle_time, lower = 1L, upper = 999L, len = 1L)
 
+  # Build task command
+  task_command <- .build_task_command(task_run, script, exec_path)
+
   args <- .build_create_args(
     task_name = task_name,
-    task_run = task_run,
+    task_run = task_command,
     schedule_type = "ONIDLE",
     idle_time = idle_time,
     start_date = start_date,
