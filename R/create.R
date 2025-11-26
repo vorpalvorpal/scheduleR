@@ -4,12 +4,19 @@
 #'
 #' @param task_name Character string. Name of the task (max 238 characters).
 #' @param task_run Character string. The program, script, or command to run.
+#'   Can be an absolute path (e.g., `"C:/Scripts/script.R"`), a relative path
+#'   (e.g., `"script.R"` or `"subfolder/script.R"`, interpreted relative to `exec_path`),
+#'   or an executable name on PATH (e.g., `"notepad.exe"`).
 #' @param every Integer. Run the task every N minutes (1-1439). Default is 1.
-#' @param script Character string or NULL. Path to script interpreter executable
-#'   (e.g., path to Rscript.exe, python.exe, julia.exe, etc.).
-#'   If `NULL`, runs `task_run` directly. Default is Rscript.exe from the current R installation.
+#' @param script Character string or NULL. Path to script interpreter executable.
+#'   Can be an absolute path (e.g., `"C:/Python311/python.exe"`), a relative path
+#'   (interpreted relative to `exec_path`), or an executable name on PATH
+#'   (e.g., `"python"`). If `NULL`, runs `task_run` directly via cmd.exe.
+#'   Default is Rscript.exe from the current R installation.
 #' @param exec_path Character string. Directory from which to execute the task.
-#'   Default is `here::here()` (project root).
+#'   Relative paths in `task_run` and `script` are interpreted relative to this
+#'   directory. The path is automatically expanded (e.g., `~` becomes the user's
+#'   home directory). Default is `here::here()` (project root).
 #' @param start_time Character string. Start time in HH:MM 24-hour format.
 #'   If `NULL` (default), the task starts immediately.
 #' @param end_time Character string. End time in HH:MM 24-hour format.

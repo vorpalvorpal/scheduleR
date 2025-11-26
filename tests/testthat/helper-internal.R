@@ -11,4 +11,5 @@
 .normalise_days_of_week <- scheduleR:::.normalise_days_of_week
 .normalise_months <- scheduleR:::.normalise_months
 .build_create_args <- scheduleR:::.build_create_args
+.build_task_command <- scheduleR:::.build_task_command
 .to_snake_case_names <- scheduleR:::.to_snake_case_names

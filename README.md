@@ -143,8 +143,12 @@ schtask_delete("ImportantTask", confirm = TRUE)
 
 - Task names must be 238 characters or fewer and cannot contain: `< > : " / \ | ? *`
 - By default, scripts are executed using `Rscript.exe` from the current R installation (`file.path(Sys.getenv("R_HOME"), "bin", "Rscript.exe")`) from the project root (`here::here()`)
-- Use the `script` parameter to specify a full path to a different interpreter executable (e.g., `"C:/Python311/python.exe"`) or set to `NULL` for no interpreter
-- Use the `exec_path` parameter to specify a custom working directory
+- **Path handling**:
+  - `task_run` and `script` can be absolute paths, relative paths (interpreted relative to `exec_path`), or executable names on PATH
+  - `exec_path` is automatically expanded (e.g., `~` becomes the user's home directory) and normalized for Windows
+  - Relative paths are preferred to avoid Windows command length limits
+- Use the `script` parameter to specify a script interpreter (e.g., `"C:/Python311/python.exe"` or `"python"` if on PATH)
+- Set `script = NULL` to run executables directly (e.g., batch files, programs on PATH)
 - The package validates file extensions against common interpreters:
   - **Rscript.exe**: expects `.R` or `.r` files
   - **python.exe**: expects `.py` or `.pyw` files
