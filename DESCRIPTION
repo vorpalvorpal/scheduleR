@@ -1,0 +1,27 @@
+Package: scheduleR
+Title: R Interface to Windows Task Scheduler
+Version: 0.1.0
+Authors@R: 
+    person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+Description: Provides an R API wrapper around the Windows 'schtasks' command-line 
+    tool for creating, querying, modifying, and managing scheduled tasks on Windows 
+    systems.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Imports:
+    askpass,
+    checkmate,
+    cli,
+    dplyr,
+    purrr,
+    readr,
+    rlang,
+    snakecase,
+    stringr,
+    tibble
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+OS_type: windows
