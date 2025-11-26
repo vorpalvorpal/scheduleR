@@ -5,8 +5,9 @@ An R interface to Windows Task Scheduler via the `schtasks` command-line tool.
 ## Installation
 
 ```r
-# Install from local source
-install.packages("path/to/scheduleR", repos = NULL, type = "source")
+# Install from GitHub
+# install.packages("remotes")
+remotes::install_github("vorpalvorpal/scheduleR")
 ```
 
 ## Overview
