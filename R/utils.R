@@ -102,9 +102,15 @@
 #' to execute a task in a specified directory.
 #'
 #' @param task_run Character string. The program, script, or command to run.
+#'   Can be an absolute path, a relative path (interpreted relative to `exec_path`),
+#'   or an executable name on PATH.
 #' @param script Character string or NULL. Path to the script interpreter executable
-#'   (e.g., "C:/Program Files/R/R-4.3.0/bin/Rscript.exe"). If NULL, runs task_run directly.
+#'   (e.g., "C:/Program Files/R/R-4.3.0/bin/Rscript.exe"). Can be an absolute path,
+#'   relative path, or executable name on PATH. If NULL, runs `task_run` directly
+#'   via cmd.exe.
 #' @param exec_path Character string. Directory from which to execute the task.
+#'   All relative paths in `task_run` and `script` are interpreted relative to this
+#'   directory.
 #'
 #' @return Character string command that can be passed to schtasks /tr.
 #'
@@ -144,36 +150,38 @@
     }
   }
 
-  # Determine execution path
+  # Normalize and expand execution path
   if (!is.null(exec_path)) {
-    # Normalize the execution path
-    exec_path <- normalizePath(exec_path, mustWork = FALSE, winslash = "/")
+    # Expand ~ and make absolute, use backslashes for Windows
+    exec_path <- normalizePath(exec_path, mustWork = FALSE, winslash = "\\")
   } else {
     # Default: use current working directory
-    exec_path <- getwd()
+    exec_path <- normalizePath(getwd(), winslash = "\\")
   }
+
+  # Normalize paths for Windows (convert forward slashes to backslashes)
+  task_run_normalized <- gsub("/", "\\\\", task_run)
 
   # Build the command based on whether a script interpreter is specified
   if (!is.null(script)) {
-    # Extract just the filename from task_run
-    task_file <- basename(task_run)
+    # Normalize script path for Windows
+    script_normalized <- gsub("/", "\\\\", script)
 
-    # Build command: cmd /c "cd /d <exec_path> && <script> <task_file>"
+    # Build command: cmd /c "cd /d <exec_path> && <script> <task_run>"
+    # Both script and task_run can be absolute or relative paths
     cmd <- sprintf(
       "cmd /c \"cd /d \"%s\" && %s \"%s\"\"",
       exec_path,
-      script,
-      task_file
+      script_normalized,
+      task_run_normalized
     )
   } else {
     # No script interpreter - just change directory and run the task
-    task_file <- basename(task_run)
-
-    # Build command: cmd /c "cd /d <exec_path> && <task_file>"
+    # task_run can be absolute path, relative path, or executable on PATH
     cmd <- sprintf(
       "cmd /c \"cd /d \"%s\" && \"%s\"\"",
       exec_path,
-      task_file
+      task_run_normalized
     )
   }
 
